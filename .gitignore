@@ -1,0 +1,25 @@
+# Java / Maven
+target/
+*.class
+
+# Node / React
+node_modules/
+dist/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets (Neon credentials etc.)
+.env
+*.env
+
+# Local run logs
+*.log
+
+.playwright-mcp/
