@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: booking-service
+
+  datasource:
+    # Dev default: in-memory H2 in PostgreSQL compatibility mode.
+    # Switch to PostgreSQL with env vars (docker compose sets these in MIV 3):
+    #   DB_URL=jdbc:postgresql://booking-postgres:5432/bookingdb  DB_USER=booking  DB_PASSWORD=booking
+    url: ${DB_URL:jdbc:h2:mem:bookingdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+
+    # Tuned for Neon (serverless Postgres): keepalive stays under Neon's ~5 min
+    # scale-to-zero window so Hikari's pooled connections don't go stale.
+    # Pool sizes are modest - two dev services shouldn't hog connection slots.
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      keepalive-time: 240000   # ms (4 min)
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+
+server:
+  port: 8082
+
+app:
+  internal-api-key: ${INTERNAL_API_KEY:dev-internal-key}   # same value as event-service
+  event-service:
+    base-url: ${EVENT_SERVICE_URL:http://localhost:8081}
+    connect-timeout-ms: ${EVENT_SERVICE_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${EVENT_SERVICE_READ_TIMEOUT_MS:5000}
+
+jwt:
+  secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-min-32-bytes!!}   # shared with event-service
+  expiration-minutes: ${JWT_EXPIRATION_MINUTES:720}
