@@ -1,25 +1,26 @@
 # Status Tracker
 
-The plan lives in **`docs/phases.md`** (MIV = Minimum Impressive Version). This file tracks where we are.
+The plan lives in **`docs/phases.md`** (MIV = Minimum Impressive Version). Current session scope: **MIV 1 + MIV 2** — MIV 3 stays in the plan as future work (removed from the active task checklist only, per user 2026-09-18).
 
 ## MIV 1 — Core Application ✅ COMPLETE (2026-09-18)
 
-Two Spring Boot services + React frontend, verified end-to-end via API journey and a real browser booking flow:
+Two Spring Boot services + React frontend, verified end-to-end via API journey and a real browser booking flow, running on Neon PostgreSQL:
 
 - event-service :8081 — events CRUD, pagination/filtering (Specifications + Pageable), JWT role security, internal API-key reserve/release, `@Version` concurrency
 - booking-service :8082 — register/login (BCrypt + JWT), bookings with price snapshot + booking references, Idempotency-Key (code + DB unique constraint), RestClient with timeouts + error translation + compensation
-- frontend :5173 — Vite + React Router + axios; events/search/pagination, details + booking, confirmation, My Bookings + cancel, admin CRUD, role-guarded routes
+- frontend :5173 — Vite + React Router + axios (pnpm); events/search/pagination, details + booking, confirmation, My Bookings + cancel, admin CRUD, role-guarded routes
 
-Verified behaviors (live runs): register/dup-email/bad-login · user→admin API 403 · no-token 401 · publish flow · validation 400s with field errors · pagination+filters (category/city/search, invalid enum 400) · booking 201 + seats decrement · **idempotent replay 200 same-reference, seats unchanged** · 404/409 translation across services · ownership 403 · cancel restores seats · double-cancel 409 · **race: 1×201 + 9×409 on last seat, seats = 0** · **event-service killed → clean 503, booking-service stays healthy** · malformed JSON → 400.
+## MIV 2 — Failures, Debugging, Performance ✅ COMPLETE (2026-09-19)
 
-Test suites: event-service (unit + 20-thread race `1 success / 19 failures`), booking-service (idempotency, ownership, compensation, auth).
+Full write-up with measured numbers: **`docs/perf-notes.md`**.
 
-## MIV 2 — Failures, Debugging, Performance ⏳ NEXT
+- Timeouts (2s connect / 5s read), 503 translation, compensation — verified in MIV 1, re-verified here
+- **Resilience4j**: retry (3 attempts, connection-refused only) composed inside circuit breaker (10-call window, 50% threshold, 10s open, half-open probes; business errors excluded) — outage drill measured: ~330 ms per failing call → **3 ms fast-fail** once open → automatic recovery
+- **Request timing filters** in both services (method, path, status, ms)
+- **Dataset**: 50,014 events (13.1 s) + 200,003 bookings (50.7 s) via JDBC batch seeders, loaded through the service boundary
+- **Index story**: `idx_events_city_start_time` (expression index matching the JPA spec's `lower(city)`) → **10.4 ms → 0.23 ms (45×)**, Sort node eliminated; `idx_bookings_user_created` → **30.8 ms → 5.8 ms (5×)**
+- Honest finding recorded: endpoint wall-times are dominated by WAN + JSON payload, not the DB — measure before optimizing
 
-Timeouts already in place; remaining: retries (safe vs unsafe), Resilience4j circuit breaker, 50–100k event dataset, EXPLAIN ANALYZE + index before/after numbers, N+1 hunt, request timing logs.
+## MIV 3 — Integration Testing, Packaging, Tooling ⏳ FUTURE (not this session)
 
-**Blocked on a user decision: Docker Desktop (admin + WSL2, enables `docker compose up` later) vs native PostgreSQL install. Needed for real-Postgres profiling.**
-
-## MIV 3 — Integration Testing, Packaging, Tooling ⏳
-
-Testcontainers (concurrency + idempotency integration tests), Dockerfiles + `docker compose up`, Swagger/OpenAPI, Flyway migrations, correlation IDs. Optional: Kafka notifications, transactional outbox, Redis.
+Testcontainers, Dockerfiles + docker compose, Swagger/OpenAPI, Flyway, correlation IDs, optional Kafka/outbox/Redis — full spec in `docs/phases.md`.

@@ -46,7 +46,7 @@ cd frontend && pnpm install && pnpm dev       # http://localhost:5173
 
 Seeded logins: `admin@eventbrite.com / admin123` (ADMIN) · `demo@eventbrite.com / demo1234` (USER). 13 demo events are seeded on first boot.
 
-Databases default to in-memory H2 (PostgreSQL mode); switch to PostgreSQL with `DB_URL/DB_USER/DB_PASSWORD/DB_DRIVER` env vars — no code change. `docker compose up` arrives in MIV 3.
+Databases default to in-memory H2 (PostgreSQL mode); the project currently runs on **Neon** (serverless PostgreSQL) via the env vars in `.env` — `DB_URL/DB_USER/DB_PASSWORD/DB_DRIVER`, no code change.
 
 ## API surface
 
@@ -81,5 +81,5 @@ cd frontend        && pnpm build
 ## Status
 
 - **MIV 1 (core application)** — ✅ complete and verified end-to-end (API journey + browser booking flow)
-- **MIV 2 (failures, debugging, performance)** — ⏳ next: retries, circuit breaker, large dataset, EXPLAIN ANALYZE, N+1 hunt (needs PostgreSQL/Docker)
-- **MIV 3 (integration testing, packaging)** — ⏳ Testcontainers, docker compose, OpenAPI, Flyway, correlation IDs
+- **MIV 2 (failures, debugging, performance)** — ✅ complete: retry + circuit breaker (outage drill: 330 ms → 3 ms fail-fast, self-healing), 50k/200k dataset, EXPLAIN ANALYZE + index before/after (45× on the main browse query) — full numbers in `docs/perf-notes.md`
+- **MIV 3 (integration testing, packaging)** — 🔮 future work (see `docs/phases.md`)
